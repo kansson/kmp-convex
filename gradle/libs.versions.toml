@@ -1,16 +1,19 @@
 [versions]
 kotlin = "2.1.21"
+serialization = "1.8.1"
 android = "8.10.1"
 gobley = "0.2.0"
 publish = "0.32.0"
 detekt = "1.23.8"
 
 [libraries]
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-plugin-atomicfu = { id = "org.jetbrains.kotlin.plugin.atomicfu", version.ref = "kotlin" }
+kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "android" }
 gobley-cargo = { id = "dev.gobley.cargo", version.ref = "gobley" }
 gobley-uniffi = { id = "dev.gobley.uniffi", version.ref = "gobley" }
