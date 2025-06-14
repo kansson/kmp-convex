@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.gobley.cargo)
     alias(libs.plugins.gobley.uniffi)
-    alias(libs.plugins.publish)
+    alias(libs.plugins.maven.publish)
 }
 
 kotlin {

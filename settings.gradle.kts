@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "kmp-convex"
 include(":kmp-convex-core")
+include("kmp-convex-plugin")
