@@ -10,29 +10,29 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.Json as KotlinJson
 
 @PublishedApi
-internal val Json = KotlinJson {
+internal val Json: KotlinJson = KotlinJson {
     ignoreUnknownKeys = true
     explicitNulls = false
     allowSpecialFloatingPointValues = true
 }
 
-class ConvexClient(
-    deploymentUrl: String,
-    ffiClientFactory: (deploymentUrl: String, clientId: String) -> MobileConvexClientInterface = ::MobileConvexClient,
+public class ConvexClient(
+    url: String,
+    ffiClientFactory: (url: String, clientId: String) -> MobileConvexClientInterface = ::MobileConvexClient,
 ) {
 
     @PublishedApi
-    internal val ffiClient =
-        ffiClientFactory(deploymentUrl, "android-todo") // TODO client id
+    internal val ffi: MobileConvexClientInterface =
+        ffiClientFactory(url, "android-todo")
 
-    inline fun <reified Args, reified Output> query(
+    public inline fun <reified Args, reified Output> query(
         function: ConvexFunction.Query<Args, Output>,
     ): Flow<ConvexResponse<Output>> = callbackFlow {
-        val args = Json.encodeToJsonElement(function.args).jsonObject.mapValues {
-            it.value.toString()
-        }
+        val args = Json.encodeToJsonElement(function.args)
+            .jsonObject
+            .mapValues { it.value.toString() }
 
-        val subscription = ffiClient.subscribe(
+        val subscription = ffi.subscribe(
             name = function.identifier,
             args = args,
             subscriber = object : QuerySubscriber {
@@ -62,13 +62,17 @@ class ConvexClient(
         }
     }
 
-    suspend inline fun <Args, reified Output> mutation(
+    public suspend inline fun <reified Args, reified Output> mutation(
         function: ConvexFunction.Mutation<Args, Output>,
     ): ConvexResponse<Output> {
+        val args = Json.encodeToJsonElement(function.args)
+            .jsonObject
+            .mapValues { it.value.toString() }
+
         try {
-            val output = ffiClient.mutation(
+            val output = ffi.mutation(
                 name = function.identifier,
-                args = mapOf(),
+                args = args,
             )
 
             return try {
@@ -82,13 +86,17 @@ class ConvexClient(
         }
     }
 
-    suspend inline fun <Args, reified Output> action(
+    public suspend inline fun <reified Args, reified Output> action(
         function: ConvexFunction.Action<Args, Output>,
     ): ConvexResponse<Output> {
+        val args = Json.encodeToJsonElement(function.args)
+            .jsonObject
+            .mapValues { it.value.toString() }
+
         try {
-            val output = ffiClient.action(
+            val output = ffi.action(
                 name = function.identifier,
-                args = mapOf(),
+                args = args,
             )
 
             return try {

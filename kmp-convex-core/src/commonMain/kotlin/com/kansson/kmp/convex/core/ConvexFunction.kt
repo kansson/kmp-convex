@@ -1,10 +1,10 @@
 package com.kansson.kmp.convex.core
 
-sealed interface ConvexFunction<Args, Output> {
-    val identifier: String
-    val args: Args
+public sealed interface ConvexFunction<Args, Output> {
+    public val identifier: String
+    public val args: Args
 
-    interface Query<Args, Output> : ConvexFunction<Args, Output>
-    interface Mutation<Args, Output> : ConvexFunction<Args, Output>
-    interface Action<Args, Output> : ConvexFunction<Args, Output>
+    public interface Query<Args, Output> : ConvexFunction<Args, Output>
+    public interface Mutation<Args, Output> : ConvexFunction<Args, Output>
+    public interface Action<Args, Output> : ConvexFunction<Args, Output>
 }

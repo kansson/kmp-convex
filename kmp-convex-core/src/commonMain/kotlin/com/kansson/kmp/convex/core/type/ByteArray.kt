@@ -35,6 +35,6 @@ internal object ByteArraySerializer : KSerializer<ByteArray> {
     )
 }
 
-typealias ByteArray =
+public typealias ByteArray =
     @Serializable(ByteArraySerializer::class)
     KotlinByteArray

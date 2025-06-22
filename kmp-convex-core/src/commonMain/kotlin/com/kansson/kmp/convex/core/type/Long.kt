@@ -41,6 +41,6 @@ internal object LongSerializer : KSerializer<Long> {
     )
 }
 
-typealias Long =
+public typealias Long =
     @Serializable(LongSerializer::class)
     KotlinLong

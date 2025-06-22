@@ -4,9 +4,9 @@ package com.kansson.kmp.convex.core
  * An exception that may be thrown or included in a [Result] when an unexpected error occurs calling
  * a Convex backend function.
  */
-class ServerError(message: String, cause: Exception? = null) : Exception(message, cause) {
-    companion object {
-        fun from(exception: ClientException.ServerException): ServerError =
+public class ServerError(message: String, cause: Exception? = null) : Exception(message, cause) {
+    public companion object {
+        public fun from(exception: ClientException.ServerException): ServerError =
             ServerError(exception.msg, exception)
     }
 }
@@ -23,10 +23,10 @@ class ServerError(message: String, cause: Exception? = null) : Exception(message
  * [published documentation](https://docs.convex.dev/functions/error-handling/application-errors)
  * for more information.
  */
-class ConvexError(message: String, val data: String, cause: Exception? = null) :
+public class ConvexError(message: String, public val data: String, cause: Exception? = null) :
     Exception(message, cause) {
-    companion object {
-        fun from(exception: ClientException.ConvexException): ConvexError =
+    public companion object {
+        public fun from(exception: ClientException.ConvexException): ConvexError =
             ConvexError(exception.message, exception.data, exception)
     }
 }
@@ -34,14 +34,14 @@ class ConvexError(message: String, val data: String, cause: Exception? = null) :
 /**
  * An exception thrown when an internal error occurs in the mobile Convex client code.
  */
-class InternalError(message: String, cause: Throwable? = null) : Exception(message, cause) {
-    companion object {
-        fun from(exception: ClientException.InternalException): InternalError =
+public class InternalError(message: String, cause: Throwable? = null) : Exception(message, cause) {
+    public companion object {
+        public fun from(exception: ClientException.InternalException): InternalError =
             InternalError(exception.msg, exception)
     }
 }
 
-fun ClientException.toError() = when (this) {
+public fun ClientException.toError() = when (this) {
     is ClientException.ConvexException -> ConvexError.from(this)
     is ClientException.InternalException -> InternalError.from(this)
     is ClientException.ServerException -> ServerError.from(this)

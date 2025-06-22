@@ -2,11 +2,13 @@ package com.kansson.kmp.convex.plugin
 
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.DOUBLE
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LIST
+import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MAP
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -64,6 +66,11 @@ internal object CodeGenerator {
                         spec.addType(it)
                         ClassName("", part, "Output")
                     } ?: output.first
+
+                    if (function.args !is RemoteResponse.Function.Type.Any) {
+                        val companion = companionObject(part, args = true)
+                        spec.addType(companion)
+                    }
 
                     spec.addSuperinterface(type.parameterizedBy(first, second))
                     spec.primaryConstructor(constructor.build())
@@ -126,6 +133,14 @@ internal object CodeGenerator {
                 spec.addProperty(property.build())
             }
 
+            if (name != "Output") {
+                val builder = builderTypeSpec(value, name)
+                spec.addType(builder)
+
+                val companion = companionObject(name, args = false)
+                spec.addType(companion)
+            }
+
             spec.primaryConstructor(constructor.build())
             ClassName("", name) to spec.build()
         }
@@ -136,5 +151,102 @@ internal object CodeGenerator {
         is RemoteResponse.Function.Type.Union -> UNIT to null
         is RemoteResponse.Function.Type.Literal -> STRING to null
         RemoteResponse.Function.Type.Any -> UNIT to null
+    }
+
+    private fun builderTypeSpec(
+        fields: Map<String, RemoteResponse.Function.Type.Object.Field>,
+        name: String,
+    ): TypeSpec {
+        val spec = TypeSpec.classBuilder("Builder")
+            .addAnnotation(ClassName("com.kansson.kmp.convex.core", "ConvexDsl"))
+
+        val function = FunSpec.builder("build")
+            .returns(ClassName("", name))
+
+        val arguments = mutableListOf<String>()
+
+        fields.forEach { (key, field) ->
+            val baseType = if (field.fieldType is RemoteResponse.Function.Type.Object) {
+                LambdaTypeName.get(
+                    receiver = ClassName("", key.replaceFirstChar { it.uppercase() }, "Builder"),
+                    returnType = UNIT,
+                )
+            } else {
+                val data = field.fieldType.typeData(key.replaceFirstChar { it.uppercase() })
+                data.first
+            }
+
+            val builderPropertyType = if (field.optional) {
+                baseType.copy(nullable = true)
+            } else {
+                baseType
+            }
+
+            val defaultValue = when {
+                field.optional -> CodeBlock.of("null")
+                else -> field.fieldType.defaultCodeBlock()
+            }
+
+            val property = PropertySpec.builder(key, builderPropertyType)
+                .mutable(true)
+                .initializer(defaultValue)
+            spec.addProperty(property.build())
+
+            val argument = when {
+                field.fieldType is RemoteResponse.Function.Type.Object && field.optional -> {
+                    "$key = $key?.let { ${key.replaceFirstChar { it.uppercase() }}.Builder().apply(it).build() }"
+                }
+                field.fieldType is RemoteResponse.Function.Type.Object -> {
+                    "$key = ${key.replaceFirstChar { it.uppercase() }}.Builder().apply($key).build()"
+                }
+                else -> "$key = $key"
+            }
+            arguments.add(argument)
+        }
+
+        function.addCode(CodeBlock.of("return %T(%L)", ClassName("", name), arguments.joinToString(", ")))
+        spec.addFunction(function.build())
+        return spec.build()
+    }
+
+    private fun companionObject(name: String, args: Boolean): TypeSpec {
+        val spec = TypeSpec.companionObjectBuilder()
+        val invoke = FunSpec.builder("invoke")
+            .addModifiers(KModifier.OPERATOR)
+            .returns(ClassName("", name))
+
+        val type = if (args) {
+            invoke.addCode("return %T(args = Args.Builder().apply(block).build())", ClassName("", name))
+            LambdaTypeName.get(
+                receiver = ClassName("", "Args", "Builder"),
+                returnType = UNIT,
+            )
+        } else {
+            invoke.addCode("return Builder().apply(block).build()")
+            LambdaTypeName.get(
+                receiver = ClassName("", "Builder"),
+                returnType = UNIT,
+            )
+        }
+
+        invoke.addParameter("block", type)
+        spec.addFunction(invoke.build())
+        return spec.build()
+    }
+
+    private fun RemoteResponse.Function.Type.defaultCodeBlock(): CodeBlock = when (this) {
+        is RemoteResponse.Function.Type.Id -> CodeBlock.of("%S", "")
+        RemoteResponse.Function.Type.String -> CodeBlock.of("%S", "")
+        is RemoteResponse.Function.Type.Literal -> CodeBlock.of("%S", "")
+        RemoteResponse.Function.Type.Int64 -> CodeBlock.of("%L", 0L)
+        RemoteResponse.Function.Type.Float64 -> CodeBlock.of("%L", 0.0)
+        RemoteResponse.Function.Type.Bool -> CodeBlock.of("false")
+        RemoteResponse.Function.Type.Bytes -> CodeBlock.of("byteArrayOf()")
+        is RemoteResponse.Function.Type.Array -> CodeBlock.of("emptyList()")
+        is RemoteResponse.Function.Type.Record -> CodeBlock.of("emptyMap()")
+        is RemoteResponse.Function.Type.Object -> CodeBlock.of("{}")
+        is RemoteResponse.Function.Type.Union -> CodeBlock.of("%L", Unit)
+        RemoteResponse.Function.Type.Null -> CodeBlock.of("%L", Unit)
+        RemoteResponse.Function.Type.Any -> CodeBlock.of("%L", Unit)
     }
 }

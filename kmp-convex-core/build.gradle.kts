@@ -9,6 +9,7 @@ plugins {
 }
 
 kotlin {
+    explicitApiWarning()
     jvmToolchain(21)
 
     androidTarget {
