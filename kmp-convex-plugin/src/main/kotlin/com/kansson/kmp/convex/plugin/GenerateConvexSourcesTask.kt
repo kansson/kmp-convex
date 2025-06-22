@@ -57,5 +57,15 @@ public abstract class GenerateConvexSourcesTask : DefaultTask() {
 
             response.body<RemoteResponse>()
         }
+
+        when (data.status) {
+            RemoteResponse.Status.Error -> error("Convex api spec query failed: ${data.status}")
+            RemoteResponse.Status.Success -> {
+                val directory = output.get().asFile
+                CodeGenerator
+                    .run(data.value)
+                    .also { it.writeTo(directory) }
+            }
+        }
     }
 }

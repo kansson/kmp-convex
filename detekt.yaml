@@ -1,3 +1,7 @@
+complexity:
+  CyclomaticComplexMethod:
+    ignoreSimpleWhenEntries: true
+
 formatting:
   TrailingCommaOnCallSite:
     active: true

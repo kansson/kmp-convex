@@ -90,7 +90,7 @@ internal class RemoteResponse(
             @Serializable
             @SerialName("record")
             data class Record(
-                val keys: Type,
+                val keys: String,
                 val values: Object.Field,
             ) : Type
 
