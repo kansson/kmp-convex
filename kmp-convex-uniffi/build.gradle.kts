@@ -1,13 +1,13 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.plugin.atomicfu)
-    alias(libs.plugins.kotlin.plugin.serialization)
     alias(libs.plugins.android.library)
+    alias(libs.plugins.gobley.cargo)
+    alias(libs.plugins.gobley.uniffi)
     alias(libs.plugins.maven.publish)
 }
 
 kotlin {
-    explicitApi()
     jvmToolchain(21)
 
     androidTarget {
@@ -16,15 +16,6 @@ kotlin {
     iosX64()
     iosArm64()
     iosSimulatorArm64()
-
-    sourceSets {
-        commonMain.dependencies {
-            implementation(projects.kmpConvexUniffi)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.io.core)
-        }
-    }
 }
 
 android {
@@ -32,5 +23,13 @@ android {
     compileSdk = 35
     defaultConfig {
         minSdk = 24
+    }
+}
+
+uniffi {
+    generateFromUdl {
+        packageName = "com.kansson.kmp.convex.core"
+        cdylibName = "convex"
+        udlFile = layout.projectDirectory.file("src/convex.udl")
     }
 }
