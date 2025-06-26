@@ -115,6 +115,7 @@ internal class RemoteResponse(
         enum class FunctionType {
             Query,
             Mutation,
+            Action,
         }
 
         @Serializable

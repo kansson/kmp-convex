@@ -26,61 +26,64 @@ internal object CodeGenerator {
         val hierarchy = mutableMapOf<String, Pair<TypeSpec.Builder, TypeSpec.Builder>>()
         val root = TypeSpec.objectBuilder("Api")
 
-        functions.forEach { function ->
-            val paths = function.identifier
-                .replace(".js", "")
-                .split("/", ":")
-                .map { part ->
-                    part.replaceFirstChar { it.uppercase() }
-                }
-
-            paths.forEachIndexed { index, part ->
-                val path = paths.take(index + 1).joinToString(".")
-                val parent = hierarchy[paths.take(index).joinToString(".")]?.second ?: root
-
-                if (index == paths.size - 1) {
-                    val spec = TypeSpec.classBuilder(part)
-                        .addModifiers(KModifier.DATA)
-
-                    val constructor = FunSpec.constructorBuilder()
-                    val type = ClassName("com.kansson.kmp.convex.core", "ConvexFunction", function.functionType.name)
-
-                    val identifier = function.identifierData()
-                    constructor.addParameter(identifier.first)
-                    spec.addProperty(identifier.second)
-
-                    val args = function.args.typeData("Args")
-                    val first = args.second?.let {
-                        spec.addType(it)
-                        ClassName("", part, "Args")
-                    } ?: args.first
-
-                    constructor.addParameter("args", args.first)
-                    val property = PropertySpec.builder("args", args.first)
-                        .addModifiers(KModifier.OVERRIDE)
-                        .initializer("args")
-                    spec.addProperty(property.build())
-
-                    val output = function.returns.typeData("Output")
-                    val second = output.second?.let {
-                        spec.addType(it)
-                        ClassName("", part, "Output")
-                    } ?: output.first
-
-                    if (function.args !is RemoteResponse.Function.Type.Any) {
-                        val companion = companionObject(part, args = true)
-                        spec.addType(companion)
+        functions
+            .filter { it.visibility.kind == RemoteResponse.Function.Visibility.Kind.Public }
+            .forEach { function ->
+                val paths = function.identifier
+                    .replace(".js", "")
+                    .split("/", ":")
+                    .map { part ->
+                        part.replaceFirstChar { it.uppercase() }
                     }
 
-                    spec.addSuperinterface(type.parameterizedBy(first, second))
-                    spec.primaryConstructor(constructor.build())
-                    parent.addType(spec.build())
-                } else if (!hierarchy.containsKey(path)) {
-                    val builder = TypeSpec.classBuilder(part)
-                    hierarchy[path] = parent to builder
+                paths.forEachIndexed { index, part ->
+                    val path = paths.take(index + 1).joinToString(".")
+                    val parent = hierarchy[paths.take(index).joinToString(".")]?.second ?: root
+
+                    if (index == paths.size - 1) {
+                        val spec = TypeSpec.classBuilder(part)
+                            .addModifiers(KModifier.DATA)
+
+                        val constructor = FunSpec.constructorBuilder()
+                        val type =
+                            ClassName("com.kansson.kmp.convex.core", "ConvexFunction", function.functionType.name)
+
+                        val identifier = function.identifierData()
+                        constructor.addParameter(identifier.first)
+                        spec.addProperty(identifier.second)
+
+                        val args = function.args.typeData("Args")
+                        val first = args.second?.let {
+                            spec.addType(it)
+                            ClassName("", part, "Args")
+                        } ?: args.first
+
+                        constructor.addParameter("args", args.first)
+                        val property = PropertySpec.builder("args", args.first)
+                            .addModifiers(KModifier.OVERRIDE)
+                            .initializer("args")
+                        spec.addProperty(property.build())
+
+                        val output = function.returns.typeData("Output")
+                        val second = output.second?.let {
+                            spec.addType(it)
+                            ClassName("", part, "Output")
+                        } ?: output.first
+
+                        if (function.args !is RemoteResponse.Function.Type.Any) {
+                            val companion = companionObject(part, args = true)
+                            spec.addType(companion)
+                        }
+
+                        spec.addSuperinterface(type.parameterizedBy(first, second))
+                        spec.primaryConstructor(constructor.build())
+                        parent.addType(spec.build())
+                    } else if (!hierarchy.containsKey(path)) {
+                        val builder = TypeSpec.classBuilder(part)
+                        hierarchy[path] = parent to builder
+                    }
                 }
             }
-        }
 
         hierarchy.entries
             .sortedByDescending { it.key.split(".").size }

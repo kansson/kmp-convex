@@ -19,10 +19,6 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
 
-    compilerOptions {
-        freeCompilerArgs.add("-XXLanguage:+ExplicitBackingFields")
-    }
-
     sourceSets {
         commonMain.dependencies {
             implementation(projects.kmpConvexUniffi)
