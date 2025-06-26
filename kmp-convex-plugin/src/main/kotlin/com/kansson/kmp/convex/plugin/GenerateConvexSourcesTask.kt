@@ -30,6 +30,10 @@ public abstract class GenerateConvexSourcesTask : DefaultTask() {
     @get:OutputDirectory
     public abstract val output: DirectoryProperty
 
+    init {
+        outputs.upToDateWhen { false }
+    }
+
     @TaskAction
     public fun generateConvexSources() {
         val extension = this.extension.get()
