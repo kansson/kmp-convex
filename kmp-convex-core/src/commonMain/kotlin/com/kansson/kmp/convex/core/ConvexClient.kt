@@ -16,14 +16,13 @@ internal val Json: KotlinJson = KotlinJson {
     allowSpecialFloatingPointValues = true
 }
 
-public class ConvexClient(
+public open class ConvexClient(
     url: String,
-    ffiClientFactory: (url: String, clientId: String) -> MobileConvexClientInterface = ::MobileConvexClient,
+    factory: (url: String, clientId: String) -> MobileConvexClientInterface = ::MobileConvexClient,
 ) {
-
     @PublishedApi
     internal val ffi: MobileConvexClientInterface =
-        ffiClientFactory(url, "android-todo")
+        factory(url, "kmp-unspecified")
 
     public inline fun <reified Args, reified Output> query(
         function: ConvexFunction.Query<Args, Output>,
@@ -109,4 +108,6 @@ public class ConvexClient(
             throw exception.toError()
         }
     }
+
+    public suspend fun setAuth(token: String): Unit = ffi.setAuth(token)
 }
