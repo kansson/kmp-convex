@@ -12,12 +12,9 @@ kotlin {
     explicitApi()
     jvmToolchain(21)
 
-    androidLibrary {
-        namespace = "com.kansson.kmp.convex.core"
-        compileSdk = 35
-        minSdk = 24
+    androidTarget {
+        publishLibraryVariants("release")
     }
-
     iosX64()
     iosArm64()
     iosSimulatorArm64()
@@ -29,6 +26,14 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.io.core)
         }
+    }
+}
+
+android {
+    namespace = "com.kansson.kmp.convex.core"
+    compileSdk = 35
+    defaultConfig {
+        minSdk = 24
     }
 }
 
