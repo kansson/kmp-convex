@@ -8,7 +8,7 @@ Add to your `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-convex = "0.0.0"
+convex = "latest" # find under releases
 
 [libraries]
 convex-core = { group = "com.kansson.kmp", name = "kmp-convex-core", version.ref = "convex" }
@@ -96,7 +96,7 @@ object Api {
 }
 ```
 
-Once you have the generated API, create a client and execute queries, mutations, or actions to get results:
+Once you have the generated API, create a client and execute queries, mutations, or actions.
 
 ```kotlin
 val client = ConvexClient("https://your-deployment.convex.cloud")
@@ -109,9 +109,6 @@ client.query(request).collect { response ->
     }
 }
 ```
-
-Queries return a `Flow` for live updates, while mutations and actions return single responses.
-
 > The Gradle plugin also generates type-safe builders that simplify creating requests as shown in the example above.
 
 ## Roadmap
