@@ -10,20 +10,15 @@ plugins {
 kotlin {
     jvmToolchain(21)
 
-    androidTarget {
-        publishLibraryVariants("release")
+    androidLibrary {
+        namespace = "com.kansson.kmp.convex.uniffi"
+        compileSdk = 35
+        minSdk = 24
     }
+
     iosX64()
     iosArm64()
     iosSimulatorArm64()
-}
-
-android {
-    namespace = "com.kansson.kmp.convex.core"
-    compileSdk = 35
-    defaultConfig {
-        minSdk = 24
-    }
 }
 
 uniffi {

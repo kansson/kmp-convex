@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.gradle.publish)
 }
 
-version = "0.0.0"
+version = project.findProperty("VERSION_NAME") as String? ?: "0.0.0"
 
 kotlin {
     explicitApi()
@@ -20,7 +20,7 @@ gradlePlugin {
             id = "com.kansson.kmp.convex"
             displayName = "Convex for Kotlin Multiplatform"
             description = "Gradle Plugin that can generate type-safe models from Convex functions."
-            tags = listOf("kotlin", "multiplatform", "kmp", "convwex")
+            tags = listOf("kotlin", "multiplatform", "kmp", "convex", "client")
             implementationClass = "com.kansson.kmp.convex.plugin.ConvexPlugin"
         }
     }

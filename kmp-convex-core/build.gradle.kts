@@ -12,9 +12,12 @@ kotlin {
     explicitApi()
     jvmToolchain(21)
 
-    androidTarget {
-        publishLibraryVariants("release")
+    androidLibrary {
+        namespace = "com.kansson.kmp.convex.core"
+        compileSdk = 35
+        minSdk = 24
     }
+
     iosX64()
     iosArm64()
     iosSimulatorArm64()
@@ -29,23 +32,16 @@ kotlin {
     }
 }
 
-android {
-    namespace = "com.kansson.kmp.convex.core"
-    compileSdk = 35
-    defaultConfig {
-        minSdk = 24
-    }
-}
-
 mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
     pom {
         name = "kmp-convex"
         description = "Convex for Kotlin Multiplatform"
         inceptionYear = "2025"
         url = "https://github.com/kansson/kmp-convex"
         licenses {
-            licenses {
+            license {
                 name = "MIT License"
                 url = "https://opensource.org/licenses/mit"
             }

@@ -2,7 +2,7 @@
 kotlin = "2.1.21"
 coroutines = "1.10.2"
 serialization = "1.8.1"
-android = "8.10.1"
+android = "8.11.0"
 io = "0.7.0"
 gobley = "0.2.0"
 ktor = "3.1.3"
@@ -27,7 +27,7 @@ kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref 
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-plugin-atomicfu = { id = "org.jetbrains.kotlin.plugin.atomicfu", version.ref = "kotlin" }
 kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-android-library = { id = "com.android.library", version.ref = "android" }
+android-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "android" }
 gobley-cargo = { id = "dev.gobley.cargo", version.ref = "gobley" }
 gobley-uniffi = { id = "dev.gobley.uniffi", version.ref = "gobley" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }

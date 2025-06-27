@@ -20,6 +20,7 @@ import com.squareup.kotlinpoet.UNIT
 import kotlinx.serialization.Serializable
 
 internal object CodeGenerator {
+    @Suppress("LongMethod")
     fun run(functions: List<RemoteResponse.Function>): FileSpec {
         val spec = FileSpec.builder("com.kansson.kmp.convex.generated", "Api")
 

@@ -41,7 +41,7 @@ public class InternalError(message: String, cause: Throwable? = null) : Exceptio
     }
 }
 
-public fun ClientException.toError() = when (this) {
+public fun ClientException.toError(): Exception = when (this) {
     is ClientException.ConvexException -> ConvexError.from(this)
     is ClientException.InternalException -> InternalError.from(this)
     is ClientException.ServerException -> ServerError.from(this)
