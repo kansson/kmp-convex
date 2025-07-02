@@ -11,3 +11,4 @@ xcuserdata
 .kotlin
 *.gpg
 target
+.env

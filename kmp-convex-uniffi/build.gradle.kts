@@ -12,12 +12,20 @@ plugins {
 kotlin {
     jvmToolchain(21)
 
+    jvm()
     androidTarget {
         publishLibraryVariants("release")
     }
+
+    macosX64()
+    macosArm64()
+    iosSimulatorArm64()
     iosX64()
     iosArm64()
-    iosSimulatorArm64()
+
+    linuxX64()
+    linuxArm64()
+    mingwX64()
 }
 
 android {
