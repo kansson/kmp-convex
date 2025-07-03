@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.1.21"
 coroutines = "1.10.2"
-serialization = "1.9.0"
+serialization = "1.8.1"
 android = "8.10.0"
 io = "0.7.0"
 gobley = "0.2.0"
