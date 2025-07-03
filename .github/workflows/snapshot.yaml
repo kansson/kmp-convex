@@ -16,9 +16,15 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           cache-workspaces: kmp-convex-uniffi
+      - run: |
+          brew tap messense/macos-cross-toolchains
+          brew install x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
+          brew install mingw-w64
       - run: echo ORG_GRADLE_PROJECT_VERSION_NAME=main-SNAPSHOT >> $GITHUB_ENV
       - run: ./gradlew publishToMavenCentral
         env:
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: x86_64-linux-gnu-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}

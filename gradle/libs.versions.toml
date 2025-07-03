@@ -19,6 +19,7 @@ ktor-client-java = { group = "io.ktor", name = "ktor-client-java", version.ref =
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 poet-kotlin = { group = "com.squareup", name = "kotlinpoet", version.ref = "poet" }
+uniffi-jvm = { group = "com.kansson.kmp", name = "kmp-convex-uniffi-jvm", version = "0.0.2" }
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
 
