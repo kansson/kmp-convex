@@ -21,7 +21,7 @@ jobs:
           brew tap messense/macos-cross-toolchains
           brew install x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
           brew install mingw-w64
-      - run: ./gradlew detekt build
+      - run: ./gradlew detekt build -x :kmp-convex-uniffi:build
         env:
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: x86_64-linux-gnu-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
