@@ -26,6 +26,25 @@ kotlin {
     linuxX64()
     linuxArm64()
     mingwX64()
+
+    sourceSets {
+        jvmMain.dependencies {
+            val platforms = listOf(
+                "darwin-x86-64",
+                "darwin-aarch64",
+                "linux-x86-64",
+                "linux-aarch64",
+                "win32-x86-64",
+            )
+
+            platforms.forEach {
+                val dependency = dependencies.variantOf(libs.uniffi.jvm) {
+                    classifier(it)
+                }
+                runtimeOnly(dependency)
+            }
+        }
+    }
 }
 
 android {
