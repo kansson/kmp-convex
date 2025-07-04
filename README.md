@@ -9,7 +9,7 @@ Add to your `gradle/libs.versions.toml`:
 ```toml
 [versions]
 kotlin = "2.1.21"
-serialization = "1.9.0"
+serialization = "1.8.1"
 convex = "latest" # find under releases
 
 [libraries]
@@ -25,8 +25,8 @@ Then in your root `build.gradle.kts`:
 
 ```kotlin
 plugins {
-  alias(libs.plugins.serialization) apply false
-  alias(libs.plugins.convex) apply false
+    alias(libs.plugins.serialization) apply false
+    alias(libs.plugins.convex) apply false
 }
 ```
 
@@ -34,20 +34,20 @@ And finally configure the plugin in your shared `build.gradle.kts`:
 
 ```kotlin
 plugins {
-  alias(libs.plugins.serialization)
-  alias(libs.plugins.convex)
+    alias(libs.plugins.serialization)
+    alias(libs.plugins.convex)
 }
 
 kotlin {
-  commonMain.dependencies {
-    implementation(libs.kotlinx.serialization.core)
-    implementation(libs.convex.core)
-  }
+    commonMain.dependencies {
+        implementation(libs.kotlinx.serialization.core)
+        implementation(libs.convex.core)
+    }
 }
 
 convex {
-  url = "https://deployment-name.convex.cloud"
-  key = "dev:deployment-name|key"
+    url = "https://deployment-name.convex.cloud"
+    key = "dev:deployment-name|key"
 }
 ```
 
@@ -87,28 +87,28 @@ The plugin generates:
 
 ```kotlin
 object Api {
-  object Tasks {
-    data class List(
-      override val identifier: String = "tasks.js:list",
-      override val args: Args
-    ) : ConvexFunction.Query<List.Args, List.Output> {
-      @Serializable
-      data class Args(
-        val status: String
-      )
+    object Tasks {
+        data class List(
+            override val identifier: String = "tasks.js:list",
+            override val args: Args,
+        ) : ConvexFunction.Query<List.Args, List.Output> {
+            @Serializable
+            data class Args(
+                val status: String,
+            )
 
-      @Serializable
-      data class Output(
-        val tasks: List<Task>
-      ) {
-        @Serializable
-        data class Task(
-          val title: String,
-          val text: String
-        )
-      }
+            @Serializable
+            data class Output(
+                val tasks: List<Task>,
+            ) {
+                @Serializable
+                data class Task(
+                    val title: String,
+                    val text: String,
+                )
+            }
+        }
     }
-  }
 }
 ```
 
@@ -119,10 +119,10 @@ val client = ConvexClient("https://your-deployment.convex.cloud")
 val request = Api.Tasks.List { status = "active" }
 
 client.query(request).collect { response ->
-  when (response) {
-    is ConvexResponse.Success -> println(response.data.tasks)
-    is ConvexResponse.Failure -> println(response.exception.message)
-  }
+    when (response) {
+        is ConvexResponse.Success -> println(response.data.tasks)
+        is ConvexResponse.Failure -> println(response.exception.message)
+    }
 }
 ```
 
@@ -130,18 +130,31 @@ client.query(request).collect { response ->
 
 ## Early Access
 
-Snapshot versions are available for testing the latest changes from the `main` branch. Add the snapshot repository to
-your `settings.gradle.kts`:
+Snapshot versions are available for testing the latest changes from the `main` branch. Configure the snapshot repository in your `settings.gradle.kts`:
 
 ```kotlin
-dependencyResolutionManagement {
-  repositories {
-    google()
-    mavenCentral()
-    maven {
-      url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+pluginManagement {
+    repositories {
+        maven {
+            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        }
     }
-  }
+
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.namespace == "com.kansson.kmp.convex") {
+                useModule("com.kansson.kmp:convex-gradle-plugin:${requested.version}")
+            }
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        maven {
+            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        }
+    }
 }
 
 ```
@@ -152,8 +165,6 @@ Then use the snapshot version in your `gradle/libs.versions.toml`:
 [versions]
 convex = "main-SNAPSHOT"
 ```
-
-> Snapshot versions are only available for the core library, not the Gradle plugin.
 
 ## Roadmap
 

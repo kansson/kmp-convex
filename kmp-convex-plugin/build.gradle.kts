@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.gradle.publish)
 }
 
-version = project.findProperty("VERSION_NAME") as String? ?: "0.0.0"
+version = project.findProperty("VERSION_NAME") as String? ?: ""
 
 kotlin {
     explicitApi()
@@ -22,6 +22,16 @@ gradlePlugin {
             description = "Gradle Plugin that can generate type-safe models from Convex functions."
             tags = listOf("kotlin", "multiplatform", "kmp", "convex", "client")
             implementationClass = "com.kansson.kmp.convex.plugin.ConvexPlugin"
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "mavenCentral"
+            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+            credentials(PasswordCredentials::class)
         }
     }
 }
