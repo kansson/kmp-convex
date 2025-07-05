@@ -1,5 +1,9 @@
 package com.kansson.kmp.convex.core
 
+import com.kansson.kmp.convex.bindings.ClientException
+import com.kansson.kmp.convex.bindings.MobileConvexClient
+import com.kansson.kmp.convex.bindings.MobileConvexClientInterface
+import com.kansson.kmp.convex.bindings.QuerySubscriber
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow

@@ -1,5 +1,7 @@
 package com.kansson.kmp.convex.core
 
+import com.kansson.kmp.convex.bindings.ClientException
+
 /**
  * An exception that may be thrown or included in a [Result] when an unexpected error occurs calling
  * a Convex backend function.
