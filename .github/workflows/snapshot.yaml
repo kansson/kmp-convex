@@ -15,7 +15,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-workspaces: kmp-convex-uniffi
+          cache-workspaces: kmp-convex-bindings
       - run: |
           brew tap messense/macos-cross-toolchains
           brew install x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
