@@ -13,7 +13,7 @@ serialization = "1.8.1"
 convex = "latest" # find under releases
 
 [libraries]
-kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-ore", version.ref = "serialization" }
+kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "serialization" }
 convex-core = { group = "com.kansson.kmp", name = "kmp-convex-core", version.ref = "convex" }
 
 [plugins]
@@ -46,14 +46,43 @@ kotlin {
 }
 
 convex {
-    url = "https://deployment-name.convex.cloud"
-    key = "dev:deployment-name|key"
+    // See setup below
+}
+```
+
+## Setup
+
+The plugin supports two modes for code generation. Choose the one that best fits your development workflow.
+
+### Local Code Generation
+
+```kotlin
+convex {
+    local {
+        server = file("../path/to/your/convex/project")
+    }
+}
+```
+
+Set `server` to the root directory of your Convex project and optionally override `command` if needed.
+
+> The `command` is the Convex CLI executable like `npm run convex`.
+
+
+### Remote Code Generation
+
+```kotlin
+convex {
+    remote {
+        url = "https://deployment-name.convex.cloud"
+        key = "dev:deployment-name|key"
+    }
 }
 ```
 
 Get your deployment `url` and create a deploy `key` in your Convex dashboard settings.
 
-> The plugin uses these to generate type-safe code from your Convex functions at build time.
+> The code generation is run at build time or manually with the `generateConvexSources` task.
 
 ## Usage
 
@@ -171,6 +200,4 @@ convex = "main-SNAPSHOT"
 - Enhanced error handling
 - Google and Apple authentication with persistence
 - Improved code generation architecture
-- Environment variable configuration for deploy keys
-- Local CLI integration for code generation
 - Apple watchOS and tvOS support

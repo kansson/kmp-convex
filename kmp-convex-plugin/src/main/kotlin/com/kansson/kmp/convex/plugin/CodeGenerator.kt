@@ -21,14 +21,14 @@ import kotlinx.serialization.Serializable
 
 internal object CodeGenerator {
     @Suppress("LongMethod")
-    fun run(functions: List<RemoteResponse.Function>): FileSpec {
+    fun run(functions: List<ConvexFunction>): FileSpec {
         val spec = FileSpec.builder("com.kansson.kmp.convex.generated", "Api")
 
         val hierarchy = mutableMapOf<String, Pair<TypeSpec.Builder, TypeSpec.Builder>>()
         val root = TypeSpec.objectBuilder("Api")
 
         functions
-            .filter { it.visibility.kind == RemoteResponse.Function.Visibility.Kind.Public }
+            .filter { it.visibility.kind == ConvexFunction.Visibility.Kind.Public }
             .forEach { function ->
                 val paths = function.identifier
                     .replace(".js", "")
@@ -71,7 +71,7 @@ internal object CodeGenerator {
                             ClassName("", part, "Output")
                         } ?: output.first
 
-                        if (function.args !is RemoteResponse.Function.Type.Any) {
+                        if (function.args !is ConvexFunction.Type.Any) {
                             val companion = companionObject(part, args = true)
                             spec.addType(companion)
                         }
@@ -97,7 +97,7 @@ internal object CodeGenerator {
         return spec.build()
     }
 
-    private fun RemoteResponse.Function.identifierData(): Pair<ParameterSpec, PropertySpec> {
+    private fun ConvexFunction.identifierData(): Pair<ParameterSpec, PropertySpec> {
         val parameter = ParameterSpec.builder("identifier", String::class)
             .defaultValue("%S", identifier)
         val property = PropertySpec.builder("identifier", String::class)
@@ -107,19 +107,19 @@ internal object CodeGenerator {
         return parameter.build() to property.build()
     }
 
-    private fun RemoteResponse.Function.Type.typeData(name: String): Pair<TypeName, TypeSpec?> = when (this) {
-        is RemoteResponse.Function.Type.Id -> STRING to null
-        RemoteResponse.Function.Type.Null -> UNIT.copy(nullable = true) to null
-        RemoteResponse.Function.Type.Int64 -> ClassName("com.kansson.kmp.convex.core.type", "Long") to null
-        RemoteResponse.Function.Type.Float64 -> DOUBLE to null
-        RemoteResponse.Function.Type.Bool -> BOOLEAN to null
-        RemoteResponse.Function.Type.String -> STRING to null
-        RemoteResponse.Function.Type.Bytes -> ClassName("com.kansson.kmp.convex.core.type", "ByteArray") to null
-        is RemoteResponse.Function.Type.Array -> {
+    private fun ConvexFunction.Type.typeData(name: String): Pair<TypeName, TypeSpec?> = when (this) {
+        is ConvexFunction.Type.Id -> STRING to null
+        ConvexFunction.Type.Null -> UNIT.copy(nullable = true) to null
+        ConvexFunction.Type.Int64 -> ClassName("com.kansson.kmp.convex.core.type", "Long") to null
+        ConvexFunction.Type.Float64 -> DOUBLE to null
+        ConvexFunction.Type.Bool -> BOOLEAN to null
+        ConvexFunction.Type.String -> STRING to null
+        ConvexFunction.Type.Bytes -> ClassName("com.kansson.kmp.convex.core.type", "ByteArray") to null
+        is ConvexFunction.Type.Array -> {
             val data = value.typeData(name)
             LIST.parameterizedBy(data.first) to data.second
         }
-        is RemoteResponse.Function.Type.Object -> {
+        is ConvexFunction.Type.Object -> {
             val spec = TypeSpec.classBuilder(name)
                 .addModifiers(KModifier.DATA)
                 .addAnnotation(Serializable::class)
@@ -148,17 +148,17 @@ internal object CodeGenerator {
             spec.primaryConstructor(constructor.build())
             ClassName("", name) to spec.build()
         }
-        is RemoteResponse.Function.Type.Record -> {
+        is ConvexFunction.Type.Record -> {
             val data = values.fieldType.typeData(name)
             MAP.parameterizedBy(STRING, data.first) to data.second
         }
-        is RemoteResponse.Function.Type.Union -> UNIT to null
-        is RemoteResponse.Function.Type.Literal -> STRING to null
-        RemoteResponse.Function.Type.Any -> UNIT to null
+        is ConvexFunction.Type.Union -> UNIT to null
+        is ConvexFunction.Type.Literal -> STRING to null
+        ConvexFunction.Type.Any -> UNIT to null
     }
 
     private fun builderTypeSpec(
-        fields: Map<String, RemoteResponse.Function.Type.Object.Field>,
+        fields: Map<String, ConvexFunction.Type.Object.Field>,
         name: String,
     ): TypeSpec {
         val spec = TypeSpec.classBuilder("Builder")
@@ -170,7 +170,7 @@ internal object CodeGenerator {
         val arguments = mutableListOf<String>()
 
         fields.forEach { (key, field) ->
-            val baseType = if (field.fieldType is RemoteResponse.Function.Type.Object) {
+            val baseType = if (field.fieldType is ConvexFunction.Type.Object) {
                 LambdaTypeName.get(
                     receiver = ClassName("", key.replaceFirstChar { it.uppercase() }, "Builder"),
                     returnType = UNIT,
@@ -197,10 +197,10 @@ internal object CodeGenerator {
             spec.addProperty(property.build())
 
             val argument = when {
-                field.fieldType is RemoteResponse.Function.Type.Object && field.optional -> {
+                field.fieldType is ConvexFunction.Type.Object && field.optional -> {
                     "$key = $key?.let { ${key.replaceFirstChar { it.uppercase() }}.Builder().apply(it).build() }"
                 }
-                field.fieldType is RemoteResponse.Function.Type.Object -> {
+                field.fieldType is ConvexFunction.Type.Object -> {
                     "$key = ${key.replaceFirstChar { it.uppercase() }}.Builder().apply($key).build()"
                 }
                 else -> "$key = $key"
@@ -238,19 +238,19 @@ internal object CodeGenerator {
         return spec.build()
     }
 
-    private fun RemoteResponse.Function.Type.defaultCodeBlock(): CodeBlock = when (this) {
-        is RemoteResponse.Function.Type.Id -> CodeBlock.of("%S", "")
-        RemoteResponse.Function.Type.String -> CodeBlock.of("%S", "")
-        is RemoteResponse.Function.Type.Literal -> CodeBlock.of("%S", "")
-        RemoteResponse.Function.Type.Int64 -> CodeBlock.of("%L", 0L)
-        RemoteResponse.Function.Type.Float64 -> CodeBlock.of("%L", 0.0)
-        RemoteResponse.Function.Type.Bool -> CodeBlock.of("false")
-        RemoteResponse.Function.Type.Bytes -> CodeBlock.of("byteArrayOf()")
-        is RemoteResponse.Function.Type.Array -> CodeBlock.of("emptyList()")
-        is RemoteResponse.Function.Type.Record -> CodeBlock.of("emptyMap()")
-        is RemoteResponse.Function.Type.Object -> CodeBlock.of("{}")
-        is RemoteResponse.Function.Type.Union -> CodeBlock.of("%L", Unit)
-        RemoteResponse.Function.Type.Null -> CodeBlock.of("%L", Unit)
-        RemoteResponse.Function.Type.Any -> CodeBlock.of("%L", Unit)
+    private fun ConvexFunction.Type.defaultCodeBlock(): CodeBlock = when (this) {
+        is ConvexFunction.Type.Id -> CodeBlock.of("%S", "")
+        ConvexFunction.Type.String -> CodeBlock.of("%S", "")
+        is ConvexFunction.Type.Literal -> CodeBlock.of("%S", "")
+        ConvexFunction.Type.Int64 -> CodeBlock.of("%L", 0L)
+        ConvexFunction.Type.Float64 -> CodeBlock.of("%L", 0.0)
+        ConvexFunction.Type.Bool -> CodeBlock.of("false")
+        ConvexFunction.Type.Bytes -> CodeBlock.of("byteArrayOf()")
+        is ConvexFunction.Type.Array -> CodeBlock.of("emptyList()")
+        is ConvexFunction.Type.Record -> CodeBlock.of("emptyMap()")
+        is ConvexFunction.Type.Object -> CodeBlock.of("{}")
+        is ConvexFunction.Type.Union -> CodeBlock.of("%L", Unit)
+        ConvexFunction.Type.Null -> CodeBlock.of("%L", Unit)
+        ConvexFunction.Type.Any -> CodeBlock.of("%L", Unit)
     }
 }
