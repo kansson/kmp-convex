@@ -26,29 +26,10 @@ kotlin {
     linuxX64()
     linuxArm64()
     mingwX64()
-
-    sourceSets {
-        jvmMain.dependencies {
-            val platforms = listOf(
-                "darwin-x86-64",
-                "darwin-aarch64",
-                "linux-x86-64",
-                "linux-aarch64",
-                "win32-x86-64",
-            )
-
-            platforms.forEach {
-                val dependency = dependencies.variantOf(libs.uniffi.jvm) {
-                    classifier(it)
-                }
-                runtimeOnly(dependency)
-            }
-        }
-    }
 }
 
 android {
-    namespace = "com.kansson.kmp.convex.uniffi"
+    namespace = "com.kansson.kmp.convex.bindings"
     compileSdk = 35
     defaultConfig {
         minSdk = 24
@@ -57,7 +38,7 @@ android {
 
 uniffi {
     generateFromUdl {
-        packageName = "com.kansson.kmp.convex.core"
+        packageName = "com.kansson.kmp.convex.bindings"
         cdylibName = "convex"
         udlFile = layout.projectDirectory.file("src/convex.udl")
     }
@@ -67,8 +48,8 @@ mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
     signAllPublications()
     pom {
-        name = "kmp-convex-uniffi"
-        description = "Convex for Kotlin Multiplatform"
+        name = "kmp-convex-bindings"
+        description = "Native Convex bindings for Kotlin Multiplatform"
         inceptionYear = "2025"
         url = "https://github.com/kansson/kmp-convex"
         licenses {
