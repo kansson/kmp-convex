@@ -2,8 +2,10 @@ package com.kansson.kmp.convex.plugin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
+import org.jetbrains.kotlin.gradle.plugin.KotlinPluginWrapper
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompileCommon
 import java.util.Properties
 
@@ -33,6 +35,15 @@ public class ConvexPlugin : Plugin<Project> {
             project.plugins.withType(KotlinMultiplatformPluginWrapper::class.java) {
                 val kotlinExtension = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
                 kotlinExtension.sourceSets.getByName("commonMain").kotlin.srcDir(
+                    task.flatMap {
+                        it.buildDirectory
+                    },
+                )
+            }
+
+            project.plugins.withType(KotlinPluginWrapper::class.java) {
+                val kotlinExtension = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+                kotlinExtension.sourceSets.getByName("main").kotlin.srcDir(
                     task.flatMap {
                         it.buildDirectory
                     },
