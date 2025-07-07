@@ -31,9 +31,16 @@ public open class ConvexClient(
     public inline fun <reified Args, reified Output> query(
         function: ConvexFunction.Query<Args, Output>,
     ): Flow<ConvexResponse<Output>> = callbackFlow {
-        val args = Json.encodeToJsonElement(function.args)
-            .jsonObject
-            .mapValues { it.value.toString() }
+        val args = try {
+            Json.encodeToJsonElement(function.args)
+                .jsonObject
+                .mapValues { it.value.toString() }
+        } catch (exception: SerializationException) {
+            return@callbackFlow cancel(
+                message = "Failed to encode function arguments.",
+                cause = exception,
+            )
+        }
 
         val subscription = ffi.subscribe(
             name = function.identifier,
@@ -42,19 +49,22 @@ public open class ConvexClient(
                 override fun onUpdate(value: String) {
                     try {
                         val data = Json.decodeFromString<Output>(value)
-                        val response = ConvexResponse.Success(data)
-                        trySend(response)
-                    } catch (@Suppress("TooGenericExceptionCaught") exception: Throwable) {
-                        cancel("error handling data from ffi", exception)
+                        trySend(ConvexResponse.Success(data))
+                    } catch (exception: SerializationException) {
+                        cancel(
+                            message = "Failed to decode function update data.",
+                            cause = exception,
+                        )
                     }
                 }
 
                 override fun onError(message: String, value: String?) {
-                    val exception = when (value) {
-                        null -> ServerError(message)
-                        else -> ConvexError(message, value)
-                    }
-                    val response = ConvexResponse.Failure<Output>(exception)
+                    val response = ConvexResponse.Failure<Output>(
+                        message = message,
+                        data = value?.let {
+                            ConvexResponse.Failure.Data(json = it)
+                        },
+                    )
                     trySend(response)
                 }
             },
@@ -67,49 +77,55 @@ public open class ConvexClient(
 
     public suspend inline fun <reified Args, reified Output> mutation(
         function: ConvexFunction.Mutation<Args, Output>,
-    ): ConvexResponse<Output> {
-        val args = Json.encodeToJsonElement(function.args)
-            .jsonObject
-            .mapValues { it.value.toString() }
-
-        try {
-            val output = ffi.mutation(
-                name = function.identifier,
-                args = args,
-            )
-
-            return try {
-                val data = Json.decodeFromString<Output>(output)
-                ConvexResponse.Success(data)
-            } catch (exception: SerializationException) {
-                ConvexResponse.Failure(exception)
-            }
-        } catch (exception: ClientException) {
-            throw exception.toError()
-        }
+    ): ConvexResponse<Output> = call(function) { args ->
+        ffi.mutation(
+            name = function.identifier,
+            args = args,
+        )
     }
 
     public suspend inline fun <reified Args, reified Output> action(
         function: ConvexFunction.Action<Args, Output>,
-    ): ConvexResponse<Output> {
+    ): ConvexResponse<Output> = call(function) { args ->
+        ffi.action(
+            name = function.identifier,
+            args = args,
+        )
+    }
+
+    @PublishedApi
+    internal inline fun <reified Args, reified Output> call(
+        function: ConvexFunction<Args, Output>,
+        block: (args: Map<String, String>) -> String,
+    ): ConvexResponse<Output> = try {
         val args = Json.encodeToJsonElement(function.args)
             .jsonObject
             .mapValues { it.value.toString() }
 
-        try {
-            val output = ffi.action(
-                name = function.identifier,
-                args = args,
+        val output = block(args)
+        val data = Json.decodeFromString<Output>(output)
+        ConvexResponse.Success(data)
+    } catch (expected: Exception) {
+        when (expected) {
+            is SerializationException -> throw ConvexException(
+                message = "Failed to serialize function data.",
+                cause = expected,
             )
-
-            return try {
-                val data = Json.decodeFromString<Output>(output)
-                ConvexResponse.Success(data)
-            } catch (exception: SerializationException) {
-                ConvexResponse.Failure(exception)
+            is ClientException -> when (expected) {
+                is ClientException.ConvexException -> ConvexResponse.Failure(
+                    message = expected.message,
+                    data = ConvexResponse.Failure.Data(json = expected.data),
+                )
+                is ClientException.ServerException -> ConvexResponse.Failure(
+                    message = expected.message,
+                    data = null,
+                )
+                is ClientException.InternalException -> throw ConvexException(
+                    message = expected.message,
+                    cause = expected,
+                )
             }
-        } catch (exception: ClientException) {
-            throw exception.toError()
+            else -> throw expected
         }
     }
 
