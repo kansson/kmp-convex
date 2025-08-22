@@ -1,4 +1,4 @@
-import com.vanniktech.maven.publish.SonatypeHost
+import gobley.gradle.cargo.dsl.android
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -26,13 +26,33 @@ kotlin {
     linuxX64()
     linuxArm64()
     mingwX64()
+
+    sourceSets {
+        androidMain.dependencies {
+            //noinspection UseTomlInstead
+            implementation("net.java.dev.jna:jna:5.17.0@aar")
+        }
+    }
 }
 
 android {
     namespace = "com.kansson.kmp.convex.bindings"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         minSdk = 24
+    }
+}
+
+cargo {
+    builds.android {
+        variants {
+            buildTaskProvider.configure {
+                additionalEnvironment.put(
+                    "RUSTFLAGS",
+                    "-C link-args=-Wl,-z,max-page-size=16384",
+                )
+            }
+        }
     }
 }
 
@@ -45,7 +65,7 @@ uniffi {
 }
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
     signAllPublications()
     pom {
         name = "kmp-convex-bindings"
