@@ -17,6 +17,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: nightly
+          components: rust-src
           cache-workspaces: kmp-convex-bindings
       - run: |
           brew tap messense/macos-cross-toolchains
