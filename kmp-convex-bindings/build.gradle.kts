@@ -1,4 +1,6 @@
 import gobley.gradle.cargo.dsl.android
+import gobley.gradle.cargo.dsl.appleMobile
+import gobley.gradle.rust.dsl.rustVersion
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -19,6 +21,7 @@ kotlin {
 
     macosX64()
     macosArm64()
+
     iosSimulatorArm64()
     iosX64()
     iosArm64()
@@ -26,6 +29,16 @@ kotlin {
     linuxX64()
     linuxArm64()
     mingwX64()
+
+    watchosSimulatorArm64()
+    watchosX64()
+    watchosArm32()
+    watchosArm64()
+    watchosDeviceArm64()
+
+    tvosSimulatorArm64()
+    tvosX64()
+    tvosArm64()
 
     sourceSets {
         androidMain.dependencies {
@@ -51,6 +64,21 @@ cargo {
                     "RUSTFLAGS",
                     "-C link-args=-Wl,-z,max-page-size=16384",
                 )
+            }
+        }
+    }
+
+    builds.appleMobile {
+        variants {
+            if (rustTarget.tier(project.rustVersion.get()) >= 3) {
+                buildTaskProvider.configure {
+                    nightly = true
+                    extraArguments.add("-Zbuild-std")
+                }
+                checkTaskProvider.configure {
+                    nightly = true
+                    extraArguments.add("-Zbuild-std")
+                }
             }
         }
     }
