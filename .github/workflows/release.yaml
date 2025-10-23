@@ -19,8 +19,8 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: nightly-2025-09-15
-          components: rust-src
           cache-workspaces: kmp-convex-bindings
+      - run: rustup component add rust-src --toolchain nightly-2025-09-15
       - run: |
           brew tap messense/macos-cross-toolchains
           brew install x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
