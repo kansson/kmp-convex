@@ -17,14 +17,22 @@ import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.UNIT
+import com.squareup.kotlinpoet.asTypeName
 import kotlinx.serialization.Serializable
 
-internal object CodeGenerator {
-    @Suppress("LongMethod")
-    fun run(functions: List<ConvexFunction>): FileSpec {
-        val spec = FileSpec.builder("com.kansson.kmp.convex.generated", "Api")
+private data class TypeInfo(
+    val typeName: TypeName,
+    val typeSpec: TypeSpec? = null,
+)
 
-        val hierarchy = mutableMapOf<String, Pair<TypeSpec.Builder, TypeSpec.Builder>>()
+private data class HierarchyNode(
+    val parent: TypeSpec.Builder,
+    val builder: TypeSpec.Builder,
+)
+
+internal object CodeGenerator {
+    fun run(functions: List<ConvexFunction>): FileSpec {
+        val hierarchy = mutableMapOf<String, HierarchyNode>()
         val root = TypeSpec.objectBuilder("Api")
 
         functions
@@ -33,212 +41,237 @@ internal object CodeGenerator {
                 val paths = function.identifier
                     .replace(".js", "")
                     .split("/", ":")
-                    .map { part ->
-                        part.replaceFirstChar { it.uppercase() }
-                    }
+                    .map { it.replaceFirstChar { char -> char.uppercase() } }
 
                 paths.forEachIndexed { index, part ->
-                    val path = paths.take(index + 1).joinToString(".")
-                    val parent = hierarchy[paths.take(index).joinToString(".")]?.second ?: root
+                    val currentPath = paths.take(index + 1).joinToString(".")
+                    val parentPath = paths.take(index).joinToString(".")
+                    val parent = hierarchy[parentPath]?.builder ?: root
 
-                    if (index == paths.size - 1) {
-                        val spec = TypeSpec.classBuilder(part)
-                            .addModifiers(KModifier.DATA)
-
-                        val constructor = FunSpec.constructorBuilder()
-                        val type =
-                            ClassName("com.kansson.kmp.convex.core", "ConvexFunction", function.functionType.name)
-
-                        val identifier = function.identifierData()
-                        constructor.addParameter(identifier.first)
-                        spec.addProperty(identifier.second)
-
-                        val args = function.args.typeData("Args")
-                        val first = args.second?.let {
-                            spec.addType(it)
-                            ClassName("", part, "Args")
-                        } ?: args.first
-
-                        constructor.addParameter("args", args.first)
-                        val property = PropertySpec.builder("args", args.first)
-                            .addModifiers(KModifier.OVERRIDE)
-                            .initializer("args")
-                        spec.addProperty(property.build())
-
-                        val output = function.returns.typeData("Output")
-                        val second = output.second?.let {
-                            spec.addType(it)
-                            ClassName("", part, "Output")
-                        } ?: output.first
-
-                        if (function.args !is ConvexFunction.Type.Any) {
-                            val companion = companionObject(part, args = true)
-                            spec.addType(companion)
-                        }
-
-                        spec.addSuperinterface(type.parameterizedBy(first, second))
-                        spec.primaryConstructor(constructor.build())
-                        parent.addType(spec.build())
-                    } else if (!hierarchy.containsKey(path)) {
-                        val builder = TypeSpec.classBuilder(part)
-                        hierarchy[path] = parent to builder
+                    when {
+                        index == paths.size - 1 -> parent.addType(buildFunctionClass(part, function))
+                        !hierarchy.containsKey(currentPath) -> hierarchy[currentPath] = HierarchyNode(
+                            parent = parent,
+                            builder = TypeSpec.classBuilder(part),
+                        )
                     }
                 }
             }
 
         hierarchy.entries
-            .sortedByDescending { it.key.split(".").size }
-            .forEach {
-                val (parent, builder) = it.value
-                parent.addType(builder.build())
+            .sortedByDescending { it.key.count { char -> char == '.' } }
+            .forEach { (_, node) ->
+                node.parent.addType(node.builder.build())
             }
 
-        spec.addType(root.build())
-        return spec.build()
+        return FileSpec.builder("com.kansson.kmp.convex.generated", "Api")
+            .addType(root.build())
+            .build()
     }
 
-    private fun ConvexFunction.identifierData(): Pair<ParameterSpec, PropertySpec> {
-        val parameter = ParameterSpec.builder("identifier", String::class)
-            .defaultValue("%S", identifier)
-        val property = PropertySpec.builder("identifier", String::class)
-            .addModifiers(KModifier.OVERRIDE)
-            .initializer("identifier")
+    private fun buildFunctionClass(name: String, function: ConvexFunction): TypeSpec {
+        val constructor = FunSpec.constructorBuilder()
+        constructor.addParameter(
+            ParameterSpec.builder("identifier", STRING)
+                .defaultValue("%S", function.identifier)
+                .build(),
+        )
 
-        return parameter.build() to property.build()
-    }
+        val args = generateTypeInfo(function.args, "Args")
+        val argsTypeName = if (args.typeSpec != null) {
+            ClassName("", name, "Args")
+        } else { args.typeName }
 
-    private fun ConvexFunction.Type.typeData(name: String): Pair<TypeName, TypeSpec?> = when (this) {
-        is ConvexFunction.Type.Id -> STRING to null
-        ConvexFunction.Type.Null -> UNIT.copy(nullable = true) to null
-        ConvexFunction.Type.Int64 -> ClassName("com.kansson.kmp.convex.core.type", "Long") to null
-        ConvexFunction.Type.Float64 -> DOUBLE to null
-        ConvexFunction.Type.Bool -> BOOLEAN to null
-        ConvexFunction.Type.String -> STRING to null
-        ConvexFunction.Type.Bytes -> ClassName("com.kansson.kmp.convex.core.type", "ByteArray") to null
-        is ConvexFunction.Type.Array -> {
-            val data = value.typeData(name)
-            LIST.parameterizedBy(data.first) to data.second
+        val argsParam = ParameterSpec.builder("args", args.typeName)
+        if (function.args is ConvexFunction.Type.Any) {
+            argsParam.defaultValue("Unit")
         }
-        is ConvexFunction.Type.Object -> {
-            val spec = TypeSpec.classBuilder(name)
-                .addModifiers(KModifier.DATA)
-                .addAnnotation(Serializable::class)
+        constructor.addParameter(argsParam.build())
 
-            val constructor = FunSpec.constructorBuilder()
-            value.forEach { (key, field) ->
-                val data = field.fieldType.typeData(key.replaceFirstChar { it.uppercase() })
-                val type = data.first.copy(nullable = data.first.isNullable || field.optional)
+        val output = generateTypeInfo(function.returns, "Output")
+        val returnTypeName = if (output.typeSpec != null) {
+            when (function.returns) {
+                is ConvexFunction.Type.Array -> {
+                    val listType = output.typeName as? com.squareup.kotlinpoet.ParameterizedTypeName
+                    val argType = listType?.typeArguments?.get(0)
+                    if (argType is ClassName && argType.simpleName == "Output") {
+                        List::class.asTypeName().parameterizedBy(ClassName("", name, "Output"))
+                    } else {
+                        output.typeName
+                    }
+                }
+                else -> ClassName("", name, "Output")
+            }
+        } else { output.typeName }
 
-                data.second?.let { spec.addType(it) }
-                constructor.addParameter(key, type)
+        val functionType = ClassName("com.kansson.kmp.convex.core", "ConvexFunction", function.functionType.name)
+        return TypeSpec.classBuilder(name)
+            .addModifiers(KModifier.DATA)
+            .primaryConstructor(constructor.build())
+            .addProperty(
+                PropertySpec.builder("identifier", STRING)
+                    .addModifiers(KModifier.OVERRIDE)
+                    .initializer("identifier")
+                    .build(),
+            )
+            .addProperty(
+                PropertySpec.builder("args", args.typeName)
+                    .addModifiers(KModifier.OVERRIDE)
+                    .initializer("args")
+                    .build(),
+            )
+            .apply {
+                args.typeSpec?.let { addType(it) }
+                output.typeSpec?.let { addType(it) }
+                if (function.args !is ConvexFunction.Type.Any) {
+                    addType(buildCompanionObject(name, forArgs = true))
+                }
+            }
+            .addSuperinterface(functionType.parameterizedBy(argsTypeName, returnTypeName))
+            .build()
+    }
 
-                val property = PropertySpec.builder(key, type)
-                    .initializer(key)
-                spec.addProperty(property.build())
+    private fun generateTypeInfo(type: ConvexFunction.Type, name: String): TypeInfo = when (type) {
+        is ConvexFunction.Type.Id -> TypeInfo(STRING)
+        ConvexFunction.Type.String -> TypeInfo(STRING)
+        is ConvexFunction.Type.Literal -> TypeInfo(STRING)
+        ConvexFunction.Type.Int64 -> TypeInfo(ClassName("com.kansson.kmp.convex.core.type", "Long"))
+        ConvexFunction.Type.Float64 -> TypeInfo(DOUBLE)
+        ConvexFunction.Type.Bool -> TypeInfo(BOOLEAN)
+        ConvexFunction.Type.Bytes -> TypeInfo(ClassName("com.kansson.kmp.convex.core.type", "ByteArray"))
+        is ConvexFunction.Type.Array -> {
+            val item = generateTypeInfo(type.value, name)
+            val itemTypeName = if (item.typeSpec != null) {
+                ClassName("", name)
+            } else {
+                item.typeName
             }
 
-            if (name != "Output") {
-                val builder = builderTypeSpec(value, name)
-                spec.addType(builder)
-
-                val companion = companionObject(name, args = false)
-                spec.addType(companion)
-            }
-
-            spec.primaryConstructor(constructor.build())
-            ClassName("", name) to spec.build()
+            TypeInfo(
+                typeName = LIST.parameterizedBy(itemTypeName),
+                typeSpec = item.typeSpec,
+            )
         }
         is ConvexFunction.Type.Record -> {
-            val data = values.fieldType.typeData(name)
-            MAP.parameterizedBy(STRING, data.first) to data.second
+            val value = generateTypeInfo(type.values.fieldType, name)
+            TypeInfo(
+                typeName = MAP.parameterizedBy(STRING, value.typeName),
+                typeSpec = value.typeSpec,
+            )
         }
-        is ConvexFunction.Type.Union -> UNIT to null
-        is ConvexFunction.Type.Literal -> STRING to null
-        ConvexFunction.Type.Any -> UNIT to null
+        is ConvexFunction.Type.Object -> buildObjectType(type, name)
+        is ConvexFunction.Type.Union -> TypeInfo(UNIT)
+        ConvexFunction.Type.Null -> TypeInfo(UNIT.copy(nullable = true))
+        ConvexFunction.Type.Any -> TypeInfo(UNIT)
     }
 
-    private fun builderTypeSpec(
-        fields: Map<String, ConvexFunction.Type.Object.Field>,
-        name: String,
-    ): TypeSpec {
-        val spec = TypeSpec.classBuilder("Builder")
-            .addAnnotation(ClassName("com.kansson.kmp.convex.core", "ConvexDsl"))
+    private fun buildObjectType(objectType: ConvexFunction.Type.Object, name: String): TypeInfo {
+        val constructor = FunSpec.constructorBuilder()
+        objectType.value.forEach { (key, field) ->
+            val data = generateTypeInfo(field.fieldType, key.replaceFirstChar { it.uppercase() })
+            constructor.addParameter(key, data.typeName.copy(nullable = data.typeName.isNullable || field.optional))
+        }
 
-        val function = FunSpec.builder("build")
-            .returns(ClassName("", name))
+        val spec = TypeSpec.classBuilder(name)
+            .addModifiers(KModifier.DATA)
+            .addAnnotation(Serializable::class)
+            .primaryConstructor(constructor.build())
+            .apply {
+                objectType.value.forEach { (key, field) ->
+                    val data = generateTypeInfo(field.fieldType, key.replaceFirstChar { it.uppercase() })
+                    val type = data.typeName.copy(nullable = data.typeName.isNullable || field.optional)
 
+                    data.typeSpec?.let { addType(it) }
+                    addProperty(
+                        PropertySpec.builder(key, type)
+                            .initializer(key)
+                            .build(),
+                    )
+                }
+
+                if (name != "Output") {
+                    addType(buildDslBuilder(objectType.value, name))
+                    addType(buildCompanionObject(name, forArgs = false))
+                }
+            }
+            .build()
+
+        return TypeInfo(ClassName("", name), spec)
+    }
+
+    private fun buildDslBuilder(fields: Map<String, ConvexFunction.Type.Object.Field>, name: String): TypeSpec {
         val arguments = mutableListOf<String>()
 
-        fields.forEach { (key, field) ->
-            val baseType = if (field.fieldType is ConvexFunction.Type.Object) {
-                LambdaTypeName.get(
-                    receiver = ClassName("", key.replaceFirstChar { it.uppercase() }, "Builder"),
-                    returnType = UNIT,
+        val spec = TypeSpec.classBuilder("Builder")
+            .addAnnotation(ClassName("com.kansson.kmp.convex.core", "ConvexDsl"))
+            .apply {
+                fields.forEach { (key, field) ->
+                    val baseType = if (field.fieldType is ConvexFunction.Type.Object) {
+                        LambdaTypeName.get(
+                            receiver = ClassName("", key.replaceFirstChar { it.uppercase() }, "Builder"),
+                            returnType = UNIT,
+                        )
+                    } else {
+                        generateTypeInfo(field.fieldType, key.replaceFirstChar { it.uppercase() }).typeName
+                    }
+
+                    val propertyType = if (field.optional) baseType.copy(nullable = true) else baseType
+                    val defaultValue = if (field.optional) CodeBlock.of("null") else defaultValueFor(field.fieldType)
+
+                    addProperty(
+                        PropertySpec.builder(key, propertyType)
+                            .mutable(true)
+                            .initializer(defaultValue)
+                            .build(),
+                    )
+
+                    val argument = when {
+                        field.fieldType is ConvexFunction.Type.Object && field.optional -> {
+                            val capitalizedKey = key.replaceFirstChar { it.uppercase() }
+                            "$key = $key?.let { $capitalizedKey.Builder().apply(it).build() }"
+                        }
+                        field.fieldType is ConvexFunction.Type.Object -> {
+                            val capitalizedKey = key.replaceFirstChar { it.uppercase() }
+                            "$key = $capitalizedKey.Builder().apply($key).build()"
+                        }
+                        else -> "$key = $key"
+                    }
+                    arguments += argument
+                }
+
+                addFunction(
+                    FunSpec.builder("build")
+                        .returns(ClassName("", name))
+                        .addCode("return %T(%L)", ClassName("", name), arguments.joinToString(", "))
+                        .build(),
                 )
-            } else {
-                val data = field.fieldType.typeData(key.replaceFirstChar { it.uppercase() })
-                data.first
             }
+            .build()
 
-            val builderPropertyType = if (field.optional) {
-                baseType.copy(nullable = true)
-            } else {
-                baseType
-            }
-
-            val defaultValue = when {
-                field.optional -> CodeBlock.of("null")
-                else -> field.fieldType.defaultCodeBlock()
-            }
-
-            val property = PropertySpec.builder(key, builderPropertyType)
-                .mutable(true)
-                .initializer(defaultValue)
-            spec.addProperty(property.build())
-
-            val argument = when {
-                field.fieldType is ConvexFunction.Type.Object && field.optional -> {
-                    "$key = $key?.let { ${key.replaceFirstChar { it.uppercase() }}.Builder().apply(it).build() }"
-                }
-                field.fieldType is ConvexFunction.Type.Object -> {
-                    "$key = ${key.replaceFirstChar { it.uppercase() }}.Builder().apply($key).build()"
-                }
-                else -> "$key = $key"
-            }
-            arguments.add(argument)
-        }
-
-        function.addCode(CodeBlock.of("return %T(%L)", ClassName("", name), arguments.joinToString(", ")))
-        spec.addFunction(function.build())
-        return spec.build()
+        return spec
     }
 
-    private fun companionObject(name: String, args: Boolean): TypeSpec {
-        val spec = TypeSpec.companionObjectBuilder()
-        val invoke = FunSpec.builder("invoke")
-            .addModifiers(KModifier.OPERATOR)
-            .returns(ClassName("", name))
-
-        val type = if (args) {
-            invoke.addCode("return %T(args = Args.Builder().apply(block).build())", ClassName("", name))
-            LambdaTypeName.get(
-                receiver = ClassName("", "Args", "Builder"),
-                returnType = UNIT,
-            )
+    private fun buildCompanionObject(name: String, forArgs: Boolean): TypeSpec {
+        val receiverClass = if (forArgs) ClassName("", "Args", "Builder") else ClassName("", "Builder")
+        val code = if (forArgs) {
+            "return %T(args = Args.Builder().apply(block).build())"
         } else {
-            invoke.addCode("return Builder().apply(block).build()")
-            LambdaTypeName.get(
-                receiver = ClassName("", "Builder"),
-                returnType = UNIT,
-            )
+            "return Builder().apply(block).build()"
         }
 
-        invoke.addParameter("block", type)
-        spec.addFunction(invoke.build())
-        return spec.build()
+        return TypeSpec.companionObjectBuilder()
+            .addFunction(
+                FunSpec.builder("invoke")
+                    .addModifiers(KModifier.OPERATOR)
+                    .returns(ClassName("", name))
+                    .addParameter("block", LambdaTypeName.get(receiver = receiverClass, returnType = UNIT))
+                    .addCode(code, ClassName("", name))
+                    .build(),
+            )
+            .build()
     }
 
-    private fun ConvexFunction.Type.defaultCodeBlock(): CodeBlock = when (this) {
+    private fun defaultValueFor(type: ConvexFunction.Type): CodeBlock = when (type) {
         is ConvexFunction.Type.Id -> CodeBlock.of("%S", "")
         ConvexFunction.Type.String -> CodeBlock.of("%S", "")
         is ConvexFunction.Type.Literal -> CodeBlock.of("%S", "")

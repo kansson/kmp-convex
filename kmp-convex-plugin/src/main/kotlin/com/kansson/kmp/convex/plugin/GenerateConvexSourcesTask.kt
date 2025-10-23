@@ -45,6 +45,10 @@ public abstract class GenerateConvexSourcesTask : DefaultTask() {
     @get:Optional
     public abstract val remoteSource: Property<RemoteConvexSource>
 
+    init {
+        outputs.upToDateWhen { false }
+    }
+
     @TaskAction
     public fun generateConvexSources() {
         val functions = when {
