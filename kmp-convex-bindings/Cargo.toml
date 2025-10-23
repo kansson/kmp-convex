@@ -4,20 +4,20 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-android_logger = "0.15.0"
-anyhow = "1.0.98"
+android_logger = "0.15.1"
+anyhow = "1.0.100"
 async-once-cell = "0.5.4"
-convex = "0.9.0"
+convex = "0.10.1"
 futures = "0.3.31"
-log = "0.4.27"
-parking_lot = "0.12.4"
-serde_json = "1.0.140"
-thiserror = "2.0.12"
-tokio = "1.45.1"
+log = "0.4.28"
+parking_lot = "0.12.5"
+serde_json = "1.0.145"
+thiserror = "2.0.17"
+tokio = "1.48.0"
 uniffi = "0.29.4"
 
 [dev-dependencies]
-maplit = { version = "1" }
+maplit = { version = "1.0.2" }
 
 [build-dependencies]
 uniffi = { version = "0.29.4", features = ["build"] }
