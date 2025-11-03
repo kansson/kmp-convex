@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.serialization.json.Json as KotlinJson
 
 @PublishedApi
@@ -28,6 +29,7 @@ public open class ConvexClient(
     internal val ffi: MobileConvexClientInterface =
         factory(url, "kmp-unspecified")
 
+    @Throws(ConvexException::class, CancellationException::class)
     public inline fun <reified Args, reified Output> query(
         function: ConvexFunction.Query<Args, Output>,
     ): Flow<ConvexResponse<Output>> = callbackFlow {
@@ -75,6 +77,7 @@ public open class ConvexClient(
         }
     }
 
+    @Throws(ConvexException::class, CancellationException::class)
     public suspend inline fun <reified Args, reified Output> mutation(
         function: ConvexFunction.Mutation<Args, Output>,
     ): ConvexResponse<Output> = call(function) { args ->
@@ -84,6 +87,7 @@ public open class ConvexClient(
         )
     }
 
+    @Throws(ConvexException::class, CancellationException::class)
     public suspend inline fun <reified Args, reified Output> action(
         function: ConvexFunction.Action<Args, Output>,
     ): ConvexResponse<Output> = call(function) { args ->
