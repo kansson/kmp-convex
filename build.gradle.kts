@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.gobley.cargo) apply false
     alias(libs.plugins.gobley.uniffi) apply false
+    alias(libs.plugins.gobley.rust) apply false
     alias(libs.plugins.maven.publish) apply false
     alias(libs.plugins.gradle.publish) apply false
     alias(libs.plugins.detekt)

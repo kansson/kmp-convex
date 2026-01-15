@@ -1,13 +1,13 @@
 [versions]
-kotlin = "2.2.21"
+kotlin = "2.3.0"
 coroutines = "1.10.2"
 serialization = "1.9.0"
-android = "8.13.0"
-io = "0.8.0"
+android = "8.13.2"
+io = "0.8.2"
 gobley = "0.3.7"
-ktor = "3.3.1"
+ktor = "3.3.3"
 poet = "2.2.0"
-maven-publish = "0.34.0"
+maven-publish = "0.35.0"
 gradle-publish = "2.0.0"
 detekt = "1.23.8"
 
@@ -31,6 +31,7 @@ kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization"
 android-library = { id = "com.android.library", version.ref = "android" }
 gobley-cargo = { id = "dev.gobley.cargo", version.ref = "gobley" }
 gobley-uniffi = { id = "dev.gobley.uniffi", version.ref = "gobley" }
+gobley-rust = { id = "dev.gobley.rust", version.ref = "gobley" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
 gradle-publish = { id = "com.gradle.plugin-publish", version.ref = "gradle-publish" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
