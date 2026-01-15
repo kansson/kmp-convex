@@ -8,13 +8,55 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 
 @Serializable
-internal data class ConvexFunction(
-    val args: Type,
-    val functionType: FunctionType,
-    val identifier: String,
-    val returns: Type,
-    val visibility: Visibility,
-) {
+@JsonClassDiscriminator("functionType")
+internal sealed interface ConvexFunction {
+    val functionType: FunctionType
+
+    sealed interface RpcFunction : ConvexFunction {
+        val args: Type
+        val identifier: String
+        val returns: Type
+        val visibility: Visibility
+    }
+
+    @Serializable
+    @SerialName("HttpAction")
+    data class HttpAction(
+        override val functionType: FunctionType,
+        val method: String,
+        val path: String,
+    ) : ConvexFunction
+
+    @Serializable
+    @SerialName("Query")
+    data class Query(
+        override val functionType: FunctionType,
+        override val args: Type,
+        override val identifier: String,
+        override val returns: Type,
+        override val visibility: Visibility,
+    ) : RpcFunction
+
+    @Serializable
+    @SerialName("Mutation")
+    data class Mutation(
+        override val functionType: FunctionType,
+        override val args: Type,
+        override val identifier: String,
+        override val returns: Type,
+        override val visibility: Visibility,
+    ) : RpcFunction
+
+    @Serializable
+    @SerialName("Action")
+    data class Action(
+        override val functionType: FunctionType,
+        override val args: Type,
+        override val identifier: String,
+        override val returns: Type,
+        override val visibility: Visibility,
+    ) : RpcFunction
+
     @Serializable
     @JsonClassDiscriminator("type")
     sealed interface Type {
@@ -90,11 +132,11 @@ internal data class ConvexFunction(
         data object Any : Type
     }
 
-    @Serializable
     enum class FunctionType {
         Query,
         Mutation,
         Action,
+        HttpAction,
     }
 
     @Serializable

@@ -32,9 +32,8 @@ kotlin {
 
     watchosSimulatorArm64()
     watchosX64()
-    // https://github.com/rust-lang/rust/issues/147776?utm_source=chatgpt.com
-    // watchosArm32()
-    // watchosArm64()
+    watchosArm32()
+    watchosArm64()
     watchosDeviceArm64()
 
     tvosSimulatorArm64()
